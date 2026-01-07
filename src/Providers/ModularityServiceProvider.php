@@ -88,12 +88,13 @@ class ModularityServiceProvider extends ServiceProvider
     private function loadModuleViews(): void
     {
         $modules = ModuleRegistry::getAllModules();
+        $viewFinder = $this->app['view']->getFinder();
 
         foreach ($modules as $module) {
             $viewsPath = $module['path'].'/Views';
 
             if (is_dir($viewsPath)) {
-                $this->loadViewsFrom($viewsPath, '');
+                $viewFinder->addLocation($viewsPath);
             }
         }
     }
