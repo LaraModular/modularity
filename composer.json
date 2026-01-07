@@ -1,0 +1,41 @@
+{
+    "name": "laramodular/modularity",
+    "description": "Modular architecture support for Laravel applications",
+    "version": "1.0.0",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/support": "^12.0",
+        "illuminate/filesystem": "^12.0",
+        "illuminate/console": "^12.0",
+        "illuminate/database": "^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "LaraModularity\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "LaraModularity\\Providers\\ModularityServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require-dev": {
+        "laravel/pint": "^1.27",
+        "larastan/larastan": "^3.0",
+        "orchestra/testbench": "^10.0"
+    },
+    "scripts": {
+        "pint": [
+            "./vendor/bin/pint --config pint.json"
+        ],
+        "phpstan": [
+            "./vendor/bin/phpstan analyse --memory-limit=2G"
+        ]
+    }
+}
