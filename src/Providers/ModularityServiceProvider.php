@@ -21,6 +21,8 @@ class ModularityServiceProvider extends ServiceProvider
             \Illuminate\Foundation\Bootstrap\LoadConfiguration::class,
             ModuleConfigBootstrap::class
         );
+
+        $this->registerModuleConfigs();
     }
 
     /**
@@ -35,7 +37,65 @@ class ModularityServiceProvider extends ServiceProvider
             ]);
         }
 
+        $this->loadModuleMigrations();
+        $this->loadModuleViews();
         $this->loadModuleRoutes();
+        $this->publishModuleAssets();
+    }
+
+    /**
+     * Register configs from all modules.
+     */
+    private function registerModuleConfigs(): void
+    {
+        $modules = ModuleRegistry::getAllModules();
+
+        foreach ($modules as $moduleName => $module) {
+            $configPath = $module['path'].'/Configs';
+
+            if (! is_dir($configPath)) {
+                continue;
+            }
+
+            foreach (glob($configPath.'/*.php') as $configFile) {
+                $configName = basename($configFile, '.php');
+                $moduleConfig = require $configFile;
+                $existingConfig = config($configName, []);
+                config([$configName => array_replace_recursive($existingConfig, $moduleConfig)]);
+            }
+        }
+    }
+
+    /**
+     * Load migrations from all modules.
+     */
+    private function loadModuleMigrations(): void
+    {
+        $modules = ModuleRegistry::getAllModules();
+
+        foreach ($modules as $moduleName => $module) {
+            $migrationsPath = $module['path'].'/Database/Migrations';
+
+            if (is_dir($migrationsPath)) {
+                $this->loadMigrationsFrom($migrationsPath);
+            }
+        }
+    }
+
+    /**
+     * Load views from all modules.
+     */
+    private function loadModuleViews(): void
+    {
+        $modules = ModuleRegistry::getAllModules();
+
+        foreach ($modules as $module) {
+            $viewsPath = $module['path'].'/Views';
+
+            if (is_dir($viewsPath)) {
+                $this->loadViewsFrom($viewsPath, '');
+            }
+        }
     }
 
     /**
@@ -52,20 +112,42 @@ class ModularityServiceProvider extends ServiceProvider
             if (file_exists($apiRoutesPath)) {
                 Route::prefix('api')
                     ->middleware('api')
-                    ->name("{$moduleName}.")
                     ->group($apiRoutesPath);
             }
 
             $webRoutesPath = $modulePath.'/Routes/web.php';
             if (file_exists($webRoutesPath)) {
                 Route::middleware('web')
-                    ->name("{$moduleName}.")
                     ->group($webRoutesPath);
             }
 
             $consoleRoutesPath = $modulePath.'/Routes/console.php';
             if (file_exists($consoleRoutesPath) && $this->app->runningInConsole()) {
                 require $consoleRoutesPath;
+            }
+        }
+    }
+
+    /**
+     * Publish assets from all modules.
+     */
+    private function publishModuleAssets(): void
+    {
+        $modules = ModuleRegistry::getAllModules();
+
+        foreach ($modules as $moduleName => $module) {
+            $publicPath = $module['path'].'/Public';
+
+            if (! is_dir($publicPath)) {
+                continue;
+            }
+
+            // Publish each subdirectory in Public as a separate asset group
+            foreach (glob($publicPath.'/*', GLOB_ONLYDIR) as $assetDir) {
+                $assetName = basename($assetDir);
+                $this->publishes([
+                    $assetDir => public_path("vendor/{$assetName}"),
+                ], "{$assetName}-assets");
             }
         }
     }
