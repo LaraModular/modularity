@@ -155,9 +155,9 @@ class ModuleMigrateCommand extends Command
         return [$classArg];
     }
 
-    private function ensureMigrationsTable(string $connection): Builder
+    private function ensureMigrationsTable(?string $connection): Builder
     {
-        $dbConnection = DB::connection($connection);
+        $dbConnection = $connection ? DB::connection($connection) : DB::connection(DB::getDefaultConnection());
         $schemaBuilder = $dbConnection->getSchemaBuilder();
 
         if (! $schemaBuilder->hasTable('migrations')) {
@@ -172,16 +172,20 @@ class ModuleMigrateCommand extends Command
         return $dbConnection->table('migrations');
     }
 
-    private function runMigration(Migration $migration, string $connection): void
+    private function runMigration(Migration $migration, ?string $connection): void
     {
         $originalConnection = DB::getDefaultConnection();
-        DB::setDefaultConnection($connection);
+		if($connection !== null) {
+        	DB::setDefaultConnection($connection);
+		}
 
         if (method_exists($migration, 'up')) {
             try {
                 $migration->up();
             } finally {
-                DB::setDefaultConnection($originalConnection);
+				if($connection !== null) {
+                	DB::setDefaultConnection($originalConnection);
+				}
             }
         }
     }
