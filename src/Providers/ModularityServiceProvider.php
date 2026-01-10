@@ -111,8 +111,7 @@ class ModularityServiceProvider extends ServiceProvider
 
             $apiRoutesPath = $modulePath.'/Routes/api.php';
             if (file_exists($apiRoutesPath)) {
-                Route::prefix('api')
-                    ->middleware('api')
+                Route::middleware('api')
                     ->group($apiRoutesPath);
             }
 
