@@ -4,6 +4,7 @@ namespace LaraModularity\Providers;
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Translation\FileLoader;
 use LaraModularity\Bootstrap\ModuleConfigBootstrap;
 use LaraModularity\Commands\ModuleMigrateCommand;
 use LaraModularity\Commands\ModuleSeedCommand;
@@ -40,7 +41,9 @@ class ModularityServiceProvider extends ServiceProvider
         $this->loadModuleMigrations();
         $this->loadModuleViews();
         $this->loadModuleRoutes();
+        $this->loadModuleTranslations();
         $this->publishModuleAssets();
+        $this->publishModuleTranslations();
     }
 
     /**
@@ -129,6 +132,33 @@ class ModularityServiceProvider extends ServiceProvider
     }
 
     /**
+     * Load translations from all modules.
+     */
+    private function loadModuleTranslations(): void
+    {
+        $modules = ModuleRegistry::getAllModules();
+        $loader = $this->app['translation.loader'];
+
+        // Add module lang paths so translations merge without namespace
+        foreach ($modules as $moduleName => $module) {
+            $langPath = $module['path'].'/Lang';
+
+            if (! is_dir($langPath)) {
+                continue;
+            }
+
+            // Use reflection to add paths to the loader
+            if ($loader instanceof FileLoader) {
+                $pathsProperty = (new \ReflectionClass($loader))->getProperty('paths');
+                $pathsProperty->setAccessible(true);
+                $paths = $pathsProperty->getValue($loader);
+                $paths[] = $langPath;
+                $pathsProperty->setValue($loader, $paths);
+            }
+        }
+    }
+
+    /**
      * Publish assets from all modules.
      */
     private function publishModuleAssets(): void
@@ -149,6 +179,26 @@ class ModularityServiceProvider extends ServiceProvider
                     $assetDir => public_path("vendor/{$assetName}"),
                 ], "{$assetName}-assets");
             }
+        }
+    }
+
+    /**
+     * Publish translations from all modules.
+     */
+    private function publishModuleTranslations(): void
+    {
+        $modules = ModuleRegistry::getAllModules();
+
+        foreach ($modules as $moduleName => $module) {
+            $langPath = $module['path'].'/Lang';
+
+            if (! is_dir($langPath)) {
+                continue;
+            }
+
+            $this->publishes([
+                $langPath => $this->app->langPath("vendor/{$moduleName}"),
+            ], "{$moduleName}-translations");
         }
     }
 }
