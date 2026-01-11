@@ -175,17 +175,17 @@ class ModuleMigrateCommand extends Command
     private function runMigration(Migration $migration, ?string $connection): void
     {
         $originalConnection = DB::getDefaultConnection();
-		if($connection !== null) {
-        	DB::setDefaultConnection($connection);
-		}
+        if ($connection !== null) {
+            DB::setDefaultConnection($connection);
+        }
 
         if (method_exists($migration, 'up')) {
             try {
                 $migration->up();
             } finally {
-				if($connection !== null) {
-                	DB::setDefaultConnection($originalConnection);
-				}
+                if ($connection !== null) {
+                    DB::setDefaultConnection($originalConnection);
+                }
             }
         }
     }
